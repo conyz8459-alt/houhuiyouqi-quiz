@@ -6,3 +6,5 @@
 !.gitignore
 !.gitattributes
 !.nojekyll
+!assets/
+!assets/*.webp

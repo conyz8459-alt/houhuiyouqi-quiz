@@ -42,9 +42,13 @@
     @media(max-width:350px){.friend-choice-card{padding:8px 6px;gap:6px}.friend-choice-card img{width:28px}.friend-choice-copy strong{font-size:14px}.friend-choice-copy small{font-size:9px}.friend-selection p{font-size:10px}}
 
     .options{margin-top:23px}.show-photo-button{position:relative}.photo-status{display:none}.show-photo-button.is-loading{cursor:default}.show-photo-button.is-loading img{opacity:0}.show-photo-button.is-loading .photo-status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;color:var(--muted);font-size:12px;line-height:1.9;text-align:center}
-    .result-wait{max-width:570px;margin:45px auto 60px;text-align:center}.wait-card{padding:35px 30px;background:var(--surface);border:1px solid var(--line);border-radius:12px}.wait-kicker{font-size:11px;letter-spacing:2px;color:var(--rust)}.wait-envelope{width:150px;margin:28px auto 19px}.wait-envelope svg{width:100%;height:auto}.result-wait h1{font-family:var(--serif);font-size:30px;line-height:1.6;font-weight:500;outline:none}.wait-dots{display:inline-flex;gap:4px;margin-left:5px;vertical-align:baseline}.wait-dots i{width:4px;height:4px;border-radius:50%;background:var(--green);animation:wait-pulse 1.2s ease-in-out infinite}.wait-dots i:nth-child(2){animation-delay:.2s}.wait-dots i:nth-child(3){animation-delay:.4s}.wait-story{font-size:14px;line-height:2.1;color:var(--muted);margin:18px 0 23px}.wait-status{font-size:11px;color:var(--green);margin-bottom:18px}.wait-footnote{font-size:11px;color:var(--muted);margin-top:13px}.result-wait .secondary{gap:20px;font-size:13px;min-height:46px}.card-type{line-height:1.7}
-    @keyframes wait-pulse{0%,80%,100%{opacity:.25}40%{opacity:1}}
-    @media(max-width:650px){.options{margin-top:20px}.result-wait{margin:25px auto 35px}.wait-card{padding:28px 17px}.result-wait h1{font-size:27px}.wait-story{font-size:13px}.wait-envelope{width:135px;margin-top:22px}.card-type{font-size:10px}}
+    body:has(.result-wait){background:var(--surface)}body:has(.result-wait) .site-header,body:has(.result-wait) .site-footer{display:none}
+    .result-wait{max-width:570px;min-height:100svh;margin:0 auto;padding:30px 0;display:grid;place-items:center;text-align:center}.wait-card{width:100%;padding:0}.wait-envelope{width:150px;margin:0 auto 28px}.wait-envelope svg{width:100%;height:auto}.result-wait h1{font-family:var(--serif);font-size:30px;line-height:1.7;font-weight:500;outline:none}.wait-dots{display:inline-flex;gap:4px;margin-left:6px;vertical-align:baseline}.wait-dots i{width:4px;height:4px;border-radius:50%;background:var(--green);animation:wait-dot-one 1.8s steps(1,end) infinite}.wait-dots i:nth-child(2){animation-name:wait-dot-two}.wait-dots i:nth-child(3){animation-name:wait-dot-three}.retry-photo{margin-top:26px}.card-type{line-height:1.7}
+    @keyframes wait-dot-one{0%{opacity:0}20%,100%{opacity:1}}
+    @keyframes wait-dot-two{0%{opacity:0}40%,100%{opacity:1}}
+    @keyframes wait-dot-three{0%{opacity:0}60%,100%{opacity:1}}
+    @media(max-width:650px){.options{margin-top:20px}.result-wait h1{font-size:27px}.wait-envelope{width:145px;margin-bottom:26px}.card-type{font-size:10px}}
+
   </style>
 </head>
 <body>
@@ -347,14 +351,20 @@
     cancelAdvance();cancelResultLoad();currentResult=scoreAnswers(state.answers);currentScreen='result-loading';
     const token=resultLoadToken;let finished=false;const photo=new Image();
     const finish=()=>{if(finished||token!==resultLoadToken)return;finished=true;resultLoadTimers.forEach(clearTimeout);resultLoadTimers=[];renderResultContent();moveTop('result-heading');};
-    photo.onload=finish;photo.onerror=finish;photo.src=PHOTOS[currentResult.person.id];
+    photo.onload=finish;
+    photo.onerror=()=>{
+      if(finished||token!==resultLoadToken)return;
+      resultLoadTimers.forEach(clearTimeout);resultLoadTimers=[];currentScreen='result-error';
+      APP.innerHTML=`<section class="result-wait result-load-error" aria-labelledby="wait-title"><div class="wait-card"><h1 id="wait-title" tabindex="-1">照片暂时没赶到</h1><button type="button" class="secondary retry-photo" id="retry-result-photo">再接一次 →</button></div></section>`;
+      document.getElementById('retry-result-photo').onclick=renderResult;moveTop('wait-title');
+    };
+    photo.src=PHOTOS[currentResult.person.id];
     if(photo.complete&&photo.naturalWidth){finish();return;}
     resultLoadTimers.push(setTimeout(()=>{
       if(finished||token!==resultLoadToken)return;
-      APP.innerHTML=`<section class="screen result-wait" aria-labelledby="wait-title" aria-busy="true"><div class="wait-card"><p class="wait-kicker">后会友期 · 友情观察站</p><div class="wait-envelope" aria-hidden="true"><svg viewBox="0 0 160 130" fill="none"><path d="M25 48 80 12l55 36v65H25V48Z" fill="#e9dfc5" stroke="#254e43" stroke-width="2"/><rect x="42" y="28" width="76" height="65" rx="4" fill="#fffdf7" stroke="#254e43" stroke-width="2"/><path d="M56 45h49M56 56h37M56 67h44" stroke="#b1bda5" stroke-width="2"/><path d="m25 48 55 39 55-39v65H25V48Z" fill="#e6ebe1" stroke="#254e43" stroke-width="2"/><path d="m25 113 43-35m67 35L92 78" stroke="#254e43" stroke-width="2"/><path d="m137 18 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z" fill="#ac5338"/></svg></div><h1 id="wait-title" tabindex="-1">友情观察员，<br>正在翻笔记<span class="wait-dots" aria-hidden="true"><i></i><i></i><i></i></span></h1><p class="wait-story">那些没发出去的消息、嘴硬时的小心思，<br>都在你的友情档案里。<br>正在请这位朋友来合影，马上揭晓。</p><p class="wait-status" role="status">答案已收好，正在等结果照片</p><button type="button" class="secondary" id="skip-result-photo">先看文字解析 <span aria-hidden="true">→</span></button><p class="wait-footnote">不想等也没关系，照片可以晚点到。</p></div></section>`;
-      document.getElementById('skip-result-photo').onclick=finish;moveTop('wait-title');
+      APP.innerHTML=`<section class="result-wait" aria-labelledby="wait-title" aria-busy="true"><div class="wait-card"><div class="wait-envelope" aria-hidden="true"><svg viewBox="0 0 160 130" fill="none"><path d="M25 48 80 12l55 36v65H25V48Z" fill="#e9dfc5" stroke="#254e43" stroke-width="2"/><rect x="42" y="28" width="76" height="65" rx="4" fill="#fffdf7" stroke="#254e43" stroke-width="2"/><path d="M56 45h49M56 56h37M56 67h44" stroke="#b1bda5" stroke-width="2"/><path d="m25 48 55 39 55-39v65H25V48Z" fill="#e6ebe1" stroke="#254e43" stroke-width="2"/><path d="m25 113 43-35m67 35L92 78" stroke="#254e43" stroke-width="2"/><path d="m137 18 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z" fill="#ac5338"/></svg></div><h1 id="wait-title" tabindex="-1" role="status">友情观察员，<br>正在翻笔记<span class="wait-dots" aria-hidden="true"><i></i><i></i><i></i></span></h1></div></section>`;
+      moveTop('wait-title');
     },120));
-    resultLoadTimers.push(setTimeout(finish,8000));
   }
   function prepareResultPhoto(){
     const img=APP.querySelector('.result-portrait');if(!img)return;const button=img.closest('button');
